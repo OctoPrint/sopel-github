@@ -347,8 +347,8 @@ def fmt_status_message(payload=None):
 
 def shorten_url(url):
     try:
-        res = requests.post('https://git.io', 'url=' + url)
-        return res.headers['location']
+        res = requests.post('https://git.io/create', data=dict(url=url))
+        return 'https://git.io/' + res.text
     except:
         return url
 
