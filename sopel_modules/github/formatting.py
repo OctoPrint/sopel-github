@@ -87,7 +87,7 @@ def get_ref_name(payload=None):
 def get_base_ref_name(payload=None):
     if not payload:
         payload = current_payload
-    return re.sub(r'^refs/(heads|tags)/', '', payload['base_ref_name'])
+    return re.sub(r'^refs/(heads|tags)/', '', payload.get('base_ref_name', payload.get('base_ref', 'unknown')))
 
 
 def get_pusher(payload=None):
