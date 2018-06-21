@@ -353,7 +353,7 @@ def shorten_url(url):
         return url
 
 
-def get_formatted_response(payload, row):
+def get_formatted_response(payload, row, config):
     global current_row, current_payload
     current_payload = payload
     current_row = row
@@ -361,8 +361,15 @@ def get_formatted_response(payload, row):
     messages = []
     if payload['event'] == 'push':
         messages.append(fmt_push_summary_message() + " " + fmt_url(shorten_url(get_push_summary_url())))
-        for commit in get_distinct_commits():
-            messages.append(fmt_commit_message(commit))
+        commits = get_distinct_commits()
+        limit = config.commit_limit
+        if 0 < limit < len(commits):
+            for commit in commits[:limit]:
+                messages.append(fmt_commit_message(commit))
+            messages.append('and {} more'.format(len(commits) - limit))
+        else:
+            for commit in commits:
+                messages.append(fmt_commit_message(commit))
     elif payload['event'] == 'commit_comment':
         messages.append(fmt_commit_comment_summary() + " " + fmt_url(shorten_url(payload['comment']['html_url'])))
     elif payload['event'] == 'pull_request':
