@@ -61,6 +61,7 @@ class GithubSection(StaticSection):
     external_url = ValidatedAttribute('external_url', default='http://your_ip_or_domain_here:3333')
     url_parsing = ValidatedAttribute('url_parsing', bool, default=True)
     issue_parsing = ValidatedAttribute('issue_parsing', bool, default=True)
+    commit_limit = ValidatedAttribute('commit_limit', int, default=3)
 
 
 def configure(config):
@@ -74,6 +75,7 @@ def configure(config):
         config.github.configure_setting('external_url', 'Callback URL for webhook activation, should be your externally facing domain or IP. You must include the port unless you are reverse proxying.')
     config.github.configure_setting('url_parsing', 'Enable parsing of Github URLs')
     config.github.configure_setting('issue_parsing', 'Enable parsing of Github issue numbers')
+    config.github.configure_setting('commit_limit', 'Set limit of commits to show in push summaries (0 = no limit)')
 
 
 def setup(sopel):
