@@ -83,6 +83,26 @@ def setup(sopel):
     if sopel.config.github.webhook:
         setup_webhook(sopel)
 
+    conn = sopel.db.connect()
+    c = conn.cursor()
+
+    try:
+        c.execute('SELECT * FROM gh_repo')
+    except Exception:
+        create_repo_table(sopel, c)
+        conn.commit()
+    conn.close()
+
+
+def create_repo_table(sopel, c):
+    primary_key = '(channel)'
+
+    c.execute('''CREATE TABLE IF NOT EXISTS gh_repo (
+        channel TEXT,
+        repo_name TEXT,
+        PRIMARY KEY {}
+        )'''.format(primary_key))
+
 
 def shutdown(sopel):
     del sopel.memory['url_callbacks'][regex]
@@ -234,6 +254,30 @@ def data_url(bot, trigger):
     fmt_response(bot, trigger, URL, True)
 
 
+@rule(r"(?:^|(?:.*\s+))(?:(?P<repo>[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+))?#(?P<issue>[0-9]+)(?:(?:\s+.*)|$)")
+def issue(bot, trigger):
+    if trigger.nick == bot.nick:
+        return
+
+    repo = trigger.group("repo")
+
+    if not repo:
+        channel = trigger.sender.lower()
+        conn = bot.db.connect()
+        c = conn.cursor()
+
+        c.execute('''SELECT repo_name FROM gh_repo WHERE channel = ?''', (channel,))
+        result = c.fetchone()
+        if not result:
+            return
+        repo = result[0]
+
+    issue = trigger.group("issue")
+    url = "https://github.com/{}/issues/{}".format(repo, issue)
+
+    bot.say(url)
+
+
 @commands('github', 'gh')
 def github_repo(bot, trigger, match=None):
     match = match or trigger
@@ -323,6 +367,47 @@ def fmt_response(bot, trigger, URL, from_regex=False):
         response.extend([' | ', data['html_url']])
 
     bot.say(''.join(response))
+
+
+@commands('gh-repo')
+@require_chanmsg('[Github] Github default repo can only be configured in a channel')
+@example('.gh-repo foosel/OctoPrint')
+@example('.gh-repo none')
+def configure_default_repo(bot, trigger):
+    '''
+    .gh-repo [<repo>|none] - Set/unset default repo of the current channel (You must be a channel OP)
+    Repo notation is just <user/org>/<repo>, not the whole URL.
+    '''
+    allowed = bot.privileges[trigger.sender].get(trigger.nick, 0) >= OP
+    if not allowed and not trigger.admin:
+        return bot.msg(trigger.sender, 'You must be a channel operator to use this command!')
+
+    if not trigger.group(2):
+        return bot.say(configure_default_repo.__doc__.strip())
+
+    channel = trigger.sender.lower()
+    repo_name = trigger.group(3)
+
+    if (not '/' in repo_name or 'http://' in repo_name or 'https://' in repo_name) and repo_name != 'none':
+        return bot.say('Invalid repo formatting, see ".help gh-repo" for an example')
+
+    conn = bot.db.connect()
+    c = conn.cursor()
+
+    if repo_name == 'none':
+        c.execute('''DELETE FROM gh_repo WHERE channel = ?''', (channel,))
+        bot.say('Cleared default Github repository configuration for channel {channel}'.format(channel=channel))
+    else:
+        c.execute('''SELECT * FROM gh_repo WHERE channel = ?''', (channel,))
+        result = c.fetchone()
+        if not result:
+            c.execute('''INSERT INTO gh_repo (channel, repo_name) VALUES (?, ?)''', (channel, repo_name))
+        else:
+            c.execute('''UPDATE gh_repo SET repo_name = ? WHERE channel = ?''', (repo_name, channel))
+        bot.say('Set default Github repository for channel {channel} to {repo}'.format(channel=channel, repo=repo_name))
+
+    conn.commit()
+    conn.close()
 
 
 @commands('gh-hook')
