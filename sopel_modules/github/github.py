@@ -59,6 +59,7 @@ class GithubSection(StaticSection):
     webhook_host = ValidatedAttribute('webhook_host', default='0.0.0.0')
     webhook_port = ValidatedAttribute('webhook_port', default='3333')
     external_url = ValidatedAttribute('external_url', default='http://your_ip_or_domain_here:3333')
+    url_parsing = ValidatedAttribute('url_parsing', bool, default=True)
     issue_parsing = ValidatedAttribute('issue_parsing', bool, default=True)
 
 
@@ -71,6 +72,7 @@ def configure(config):
         config.github.configure_setting('webhook_host', 'Listen IP for incoming webhooks (0.0.0.0 for all IPs)')
         config.github.configure_setting('webhook_port', 'Listen port for incoming webhooks')
         config.github.configure_setting('external_url', 'Callback URL for webhook activation, should be your externally facing domain or IP. You must include the port unless you are reverse proxying.')
+    config.github.configure_setting('url_parsing', 'Enable parsing of Github URLs')
     config.github.configure_setting('issue_parsing', 'Enable parsing of Github issue numbers')
 
 
@@ -130,6 +132,9 @@ def fetch_api_endpoint(bot, url):
 
 @rule('.*%s.*' % issueURL)
 def issue_info(bot, trigger, match=None):
+    if not bot.config.github.url_parsing:
+        return
+
     match = match or trigger
     URL = 'https://api.github.com/repos/%s/issues/%s' % (match.group(1), match.group(2))
     if (match.group(3)):
@@ -176,6 +181,9 @@ def issue_info(bot, trigger, match=None):
 
 @rule('.*%s.*' % commitURL)
 def commit_info(bot, trigger, match=None):
+    if not bot.config.github.url_parsing:
+        return
+
     match = match or trigger
     URL = 'https://api.github.com/repos/%s/commits/%s' % (match.group(1), match.group(2))
 
@@ -252,6 +260,9 @@ def get_data(bot, trigger, URL):
 
 @rule(r'https?://github\.com/([^ /]+?)/([^ /]+)/?(?!\S)')
 def data_url(bot, trigger):
+    if not bot.config.github.url_parsing:
+        return
+
     URL = 'https://api.github.com/repos/%s/%s' % (trigger.group(1).strip(), trigger.group(2).strip())
     fmt_response(bot, trigger, URL, True)
 
