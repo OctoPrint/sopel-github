@@ -362,7 +362,7 @@ def get_formatted_response(payload, row, config):
     if payload['event'] == 'push':
         messages.append(fmt_push_summary_message() + " " + fmt_url(shorten_url(get_push_summary_url())))
         commits = get_distinct_commits()
-        limit = config.commit_limit
+        limit = config.github.commit_limit
         if 0 < limit < len(commits):
             for commit in commits[:limit]:
                 messages.append(fmt_commit_message(commit))
