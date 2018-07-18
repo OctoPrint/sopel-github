@@ -138,11 +138,18 @@ def webhook():
 
     targets = get_targets(payload['repository']['full_name'])
 
+    if sopel_instance.config.github.webhook_notices:
+        def send(target, msg):
+            sopel_instance.notice(msg, target)
+    else:
+        def send(target, msg):
+            sopel_instance.msg(target, msg)
+
     for row in targets:
         messages = get_formatted_response(payload, row)
         # Write the formatted message(s) to the channel
         for message in messages:
-            sopel_instance.msg(row[0], message)
+            send(row[0], message)
 
     return '{"channels":' + json.dumps([chan[0] for chan in targets]) + '}'
 
