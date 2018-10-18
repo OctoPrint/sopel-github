@@ -271,7 +271,7 @@ def data_url(bot, trigger):
     fmt_response(bot, trigger, URL, True)
 
 
-@rule(r"(?:^|(?:.*\s+))(?:(?P<repo>[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+))?#(?P<issue>[0-9]+)(?:(?:\s+.*)|$)")
+@rule(r"(?:^|(?:.*\s+))(?:(?P<repo>[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+))?#(?P<issue>[0-9]+)(?:(?:(\s|[.,!?:;]).*)|$)")
 def issue(bot, trigger):
     if not bot.config.github.issue_parsing:
         return
